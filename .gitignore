@@ -3,6 +3,10 @@
 ##
 ## Get latest from https://github.com/github/gitignore/blob/main/VisualStudio.gitignore
 
+# Custom ignores
+.idea/
+TPO2_PM_S24188.iml
+
 # User-specific files
 *.rsuser
 *.suo
