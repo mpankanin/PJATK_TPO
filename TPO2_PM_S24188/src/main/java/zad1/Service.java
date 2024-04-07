@@ -81,6 +81,12 @@ public class Service {
         }
     }
 
+    public static Locale getCountry(String countryName){
+        List<Locale> countries = List.of(Locale.getAvailableLocales());
+        Optional<Locale> receivedCountry = countries.stream().filter(country -> country.getDisplayCountry().equalsIgnoreCase(countryName)).findFirst();
+        return receivedCountry.orElse(null);
+    }
+
     public static String readFromUrl(URL url) {
         try (InputStream input = url.openStream()) {
             InputStreamReader isr = new InputStreamReader(input);
@@ -94,11 +100,5 @@ public class Service {
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
-    }
-
-    public static Locale getCountry(String countryName){
-        List<Locale> countries = List.of(Locale.getAvailableLocales());
-        Optional<Locale> receivedCountry = countries.stream().filter(country -> country.getDisplayCountry().equalsIgnoreCase(countryName)).findFirst();
-        return receivedCountry.orElse(null);
     }
 }
