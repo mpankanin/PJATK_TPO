@@ -1,9 +1,9 @@
 package zad1.Main_Server;
 
-import zad1.GlobalLogger;
-import zad1.Request;
-import zad1.Response;
-import zad1.ResponseCode;
+import zad1.Util.GlobalLogger;
+import zad1.Util.Request;
+import zad1.Util.Response;
+import zad1.Util.ResponseCode;
 
 import java.io.IOException;
 import java.io.ObjectInputStream;
@@ -55,7 +55,7 @@ public class MainServer {
 
             Request request = (Request) in.readObject();
             switch (request.getRequestType()){
-                case CLIENT -> serveClientRequest(request, clientSocket);
+                case CLIENT -> serveClientRequest(request);
                 case LANGUAGE_SERVER -> serveLanguageRequest(request);
             }
 
@@ -65,19 +65,21 @@ public class MainServer {
         }
     }
 
-    private void serveClientRequest(final Request request, final Socket clientSocket) {
-        if(!connectedLanguageServers.containsKey(request.getLanguageCode())){
+    private void serveClientRequest(final Request request) {
+        if(!connectedLanguageServers.containsKey(request.getLanguageCode().toLowerCase())){
             //Bad request -> send error directly to the user
-            Response badResponse = new Response(null, ResponseCode.LANGUAGE_SERVER_NOT_FOUND, getServerInfo());
-            sendResponseToClient(badResponse, clientSocket);
+            GlobalLogger.getLogger().warning("MainServ - Couldn't find server with language code: " + request.getLanguageCode());
+            Response badResponse = new Response(null, request.getPort(), ResponseCode.LANGUAGE_SERVER_NOT_FOUND, getServerInfo());
+            sendResponseToClient(badResponse);
         }else {
             //OK request -> forward the request to the language server
+            GlobalLogger.getLogger().info("MainServ - Requested language code server found, forwarding the request: " + request.getLanguageCode() + ", " + request.getSentenceToTranslate());
             sendRequestToLanguageServer(request);
         }
     }
 
     private void serveLanguageRequest(Request langServReq){
-        connectedLanguageServers.put(langServReq.getLanguageCode(), langServReq.getServerPort());
+        connectedLanguageServers.put(langServReq.getLanguageCode().toLowerCase(), langServReq.getServerPort());
         GlobalLogger.getLogger().info("MainServ - Language server connected: " + langServReq.getLanguageCode());
     }
 
@@ -85,14 +87,17 @@ public class MainServer {
         return "MainServer{host = " + host + ", port = " + port + ", started = " + startedTime.toString() + "}";
     }
 
-    private void sendResponseToClient(final Response response, final Socket clientSocket){
-        GlobalLogger.getLogger().info("MainServ - sending a response to: " + clientSocket.getLocalPort());
-        try (ObjectOutputStream out = new ObjectOutputStream(clientSocket.getOutputStream())){
+    private void sendResponseToClient(final Response response){
+        GlobalLogger.getLogger().info("MainServ - sending a response to: " + response.getTargetPort());
+        try (Socket socket = new Socket(host, response.getTargetPort())){
+            ObjectOutputStream out = new ObjectOutputStream(socket.getOutputStream());
             out.writeObject(response);
-        } catch (IOException e) {
-            GlobalLogger.getLogger().severe("MainServ - couldn't connect with a client: " + clientSocket.getLocalPort());
+
+            out.close();
+        } catch (IOException ex) {
+            GlobalLogger.getLogger().severe(ex.toString());
         }
-        GlobalLogger.getLogger().info("MainServ - response has been sent correctly: " + clientSocket.getLocalPort());
+        GlobalLogger.getLogger().info("MainServ - response has been sent correctly: " + response.getTargetPort());
     }
 
     private void sendRequestToLanguageServer(Request request) {

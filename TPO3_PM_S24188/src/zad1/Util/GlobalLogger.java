@@ -1,4 +1,4 @@
-package zad1;
+package zad1.Util;
 
 import java.io.IOException;
 import java.util.logging.FileHandler;

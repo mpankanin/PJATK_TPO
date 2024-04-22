@@ -1,4 +1,4 @@
-package zad1.Language_Server;
+package zad1.Language_Server.Languages;
 
 import java.util.HashMap;
 import java.util.Map;

@@ -1,4 +1,4 @@
-package zad1;
+package zad1.Util;
 
 public enum ResponseCode {
     OK,

@@ -1,6 +1,12 @@
 package zad1.Language_Server;
 
-import zad1.*;
+import zad1.Language_Server.Languages.LanguageEnglish;
+import zad1.Language_Server.Languages.LanguagePack;
+import zad1.Util.GlobalLogger;
+import zad1.Util.Request;
+import zad1.Util.RequestType;
+import zad1.Util.Response;
+import zad1.Util.ResponseCode;
 
 import java.io.IOException;
 import java.io.ObjectInputStream;
@@ -68,7 +74,7 @@ public class LanguageServer {
     }
 
     private void handleClient(Socket clientSocket) {
-        GlobalLogger.getLogger().info("LangServ - serving a client: " + clientSocket.getLocalAddress() + ", " + clientSocket.getLocalPort());
+        GlobalLogger.getLogger().info("LangServ - serving a client: " + clientSocket.getInetAddress());
         try {
             ObjectInputStream in = new ObjectInputStream(clientSocket.getInputStream());
 
@@ -76,14 +82,14 @@ public class LanguageServer {
             String foreignWord = getForeignWord(request.getSentenceToTranslate());
             ResponseCode responseCode = getResponseCode(foreignWord);
 
-            Response response = new Response(foreignWord, responseCode, getServerInfo());
+            Response response = new Response(foreignWord, null, responseCode, getServerInfo());
             sendResponse(response, request.getPort());
 
             in.close();
         } catch (IOException | ClassNotFoundException ex) {
             GlobalLogger.getLogger().severe(ex.toString());
         }
-        GlobalLogger.getLogger().info("LangServ - client served correctly: " + clientSocket.getLocalAddress() + ", " + clientSocket.getLocalAddress());
+        GlobalLogger.getLogger().info("LangServ - client served correctly: " + clientSocket.getInetAddress());
     }
 
     private ResponseCode getResponseCode(String foreignWord) {
@@ -111,8 +117,8 @@ public class LanguageServer {
             out.writeObject(response);
 
             out.close();
-        } catch (IOException e) {
-            GlobalLogger.getLogger().severe("LangServ - couldn't connect with a client: " + port);
+        } catch (IOException ex) {
+            GlobalLogger.getLogger().severe(ex.toString());
         }
         GlobalLogger.getLogger().info("LangServ - response has been sent correctly: " + port);
     }
