@@ -1,9 +1,6 @@
 package zad1.Language_Server;
 
-import zad1.GlobalLogger;
-import zad1.Request;
-import zad1.RequestType;
-import zad1.Response;
+import zad1.*;
 
 import java.io.IOException;
 import java.io.ObjectInputStream;
@@ -40,13 +37,15 @@ public class LanguageServer {
     public void connectToMainServer(final String host, final int serverPort) {
         GlobalLogger.getLogger().info("Connecting to main server: " + host + ", " + serverPort);
         try (Socket socket = new Socket(host, serverPort)){
+            GlobalLogger.getLogger().info("Connected to main server: " + host + ", " + serverPort);
             ObjectOutputStream out = new ObjectOutputStream(socket.getOutputStream());
 
+            GlobalLogger.getLogger().info("Sending a request to attach language server to main server: " + host + ", " + serverPort);
             Request request = new Request(null, languagePack.getLanguageCode(), null, port, RequestType.LANGUAGE_SERVER);
 
             out.writeObject(request);
             out.close();
-            GlobalLogger.getLogger().info("Connected to main server: " + host + ", " + serverPort);
+            GlobalLogger.getLogger().info("Request has been sent correctly to main server: " + host + ", " + serverPort);
         } catch (IOException ex) {
             GlobalLogger.getLogger().severe(ex.toString());
         }
@@ -57,7 +56,7 @@ public class LanguageServer {
         connectToMainServer(host, serverPort);
         startedTime = LocalDateTime.now();
 
-        try(ServerSocket serverSocket = new ServerSocket(serverPort)) {
+        try(ServerSocket serverSocket = new ServerSocket(port)) {
             GlobalLogger.getLogger().info("Language server started, listening client's request: " + languagePack.getLanguageCode() + ", " + port);
             while (true) {
                 Socket clientSocket = serverSocket.accept();
@@ -75,8 +74,9 @@ public class LanguageServer {
 
             Request request = (Request) in.readObject();
             String foreignWord = getForeignWord(request.getSentenceToTranslate());
+            ResponseCode responseCode = getResponseCode(foreignWord);
 
-            Response response = new Response(foreignWord, getServerInfo());
+            Response response = new Response(foreignWord, responseCode, getServerInfo());
             sendResponse(response, request.getPort());
 
             in.close();
@@ -84,6 +84,10 @@ public class LanguageServer {
             GlobalLogger.getLogger().severe(ex.toString());
         }
         GlobalLogger.getLogger().info("LangServ - client served correctly: " + clientSocket.getLocalAddress() + ", " + clientSocket.getLocalAddress());
+    }
+
+    private ResponseCode getResponseCode(String foreignWord) {
+        return foreignWord == null ? ResponseCode.TRANSLATION_NOT_FOUND : ResponseCode.OK;
     }
 
     private String getForeignWord(String word){
