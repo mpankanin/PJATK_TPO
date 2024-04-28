@@ -8,6 +8,5 @@
     </content>
     <orderEntry type="sourceFolder" forTests="false" />
     <orderEntry type="inheritedJdk" />
-    <orderEntry type="library" name="json-20240303" level="application" />
   </component>
 </module>
