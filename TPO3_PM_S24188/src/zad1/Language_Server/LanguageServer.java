@@ -1,7 +1,9 @@
 package zad1.Language_Server;
 
 import zad1.Language_Server.Languages.LanguageEnglish;
+import zad1.Language_Server.Languages.LanguageGerman;
 import zad1.Language_Server.Languages.LanguagePack;
+import zad1.Language_Server.Languages.LanguageSpanish;
 import zad1.Util.GlobalLogger;
 import zad1.Util.Request;
 import zad1.Util.RequestType;
@@ -32,12 +34,21 @@ public class LanguageServer {
     }
 
     public static void main(String[] args) {
-        //Load the language pack
+        //Load and start the language pack
+        //EN
         LanguagePack languagePack = new LanguageEnglish();
-
-        //Start the server
         LanguageServer languageServer = new LanguageServer("localhost", 20201, 20100, languagePack);
         languageServer.start();
+
+        //ES
+//        LanguagePack languagePack1 = new LanguageSpanish();
+//        LanguageServer languageServer1 = new LanguageServer("localhost", 20202, 20100, languagePack1);
+//        languageServer1.start();
+
+        //DE
+        //LanguagePack languagePack2 = new LanguageGerman();
+        //LanguageServer languageServer2 = new LanguageServer("localhost", 20203, 20100, languagePack2);
+        //languageServer2.start();
     }
 
     public void connectToMainServer(final String host, final int serverPort) {
@@ -48,6 +59,23 @@ public class LanguageServer {
 
             GlobalLogger.getLogger().info("Sending a request to attach language server to main server: " + host + ", " + serverPort);
             Request request = new Request(null, languagePack.getLanguageCode(), null, port, RequestType.LANGUAGE_SERVER);
+
+            out.writeObject(request);
+            out.close();
+            GlobalLogger.getLogger().info("Request has been sent correctly to main server: " + host + ", " + serverPort);
+        } catch (IOException ex) {
+            GlobalLogger.getLogger().severe(ex.toString());
+        }
+    }
+
+    public void disconnectFromMainServer(final String host, final int serverPort) {
+        GlobalLogger.getLogger().info("Disconnecting from main server: " + host + ", " + serverPort);
+        try (Socket socket = new Socket(host, serverPort)){
+            GlobalLogger.getLogger().info("Connected to main server: " + host + ", " + serverPort);
+            ObjectOutputStream out = new ObjectOutputStream(socket.getOutputStream());
+
+            GlobalLogger.getLogger().info("Sending a request to disconnect language server from main server: " + host + ", " + serverPort);
+            Request request = new Request(null, languagePack.getLanguageCode(), null, port, RequestType.LANGUAGE_SERVER_REMOVE);
 
             out.writeObject(request);
             out.close();
@@ -70,6 +98,8 @@ public class LanguageServer {
             }
         } catch (IOException ex) {
             GlobalLogger.getLogger().severe(ex.toString());
+        } finally {
+            disconnectFromMainServer(host, serverPort);
         }
     }
 

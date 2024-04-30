@@ -57,6 +57,7 @@ public class MainServer {
             switch (request.getRequestType()){
                 case CLIENT -> serveClientRequest(request);
                 case LANGUAGE_SERVER -> serveLanguageRequest(request);
+                case LANGUAGE_SERVER_REMOVE -> removeLanguageServer(request);
             }
 
             in.close();
@@ -81,6 +82,13 @@ public class MainServer {
     private void serveLanguageRequest(Request langServReq){
         connectedLanguageServers.put(langServReq.getLanguageCode().toLowerCase(), langServReq.getServerPort());
         GlobalLogger.getLogger().info("MainServ - Language server connected: " + langServReq.getLanguageCode());
+    }
+
+    private void removeLanguageServer(Request langServReq){
+        if(connectedLanguageServers.containsKey(langServReq.getLanguageCode())){
+            connectedLanguageServers.remove(langServReq.getLanguageCode().toLowerCase());
+        }
+        GlobalLogger.getLogger().info("MainServ - Language server disconnected: " + langServReq.getLanguageCode());
     }
 
     private String getServerInfo(){

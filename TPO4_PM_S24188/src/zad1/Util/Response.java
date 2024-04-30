@@ -1,3 +1,5 @@
+package zad1.Util;
+
 import java.io.Serializable;
 
 public class Response implements Serializable {

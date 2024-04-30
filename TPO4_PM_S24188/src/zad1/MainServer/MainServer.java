@@ -1,6 +1,6 @@
 package zad1.MainServer;
 
-import com.sun.net.httpserver.Request;
+import zad1.Util.Request;
 import zad1.Util.GlobalLogger;
 
 import java.io.IOException;
@@ -11,17 +11,21 @@ import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
-import java.util.Iterator;
-import java.util.Set;
+import java.util.*;
 
 public class MainServer {
 
     private final String host;
     private final int port;
 
+    private ArrayList<String> availableTopics;
+    private Map<Long, List<String>> usersSubscriptions;
+
     public MainServer(String host, int port) {
         this.host = host;
         this.port = port;
+        this.availableTopics = new ArrayList<>();
+        this.usersSubscriptions = new HashMap<>();
         start();
     }
 
@@ -102,11 +106,59 @@ public class MainServer {
     }
 
     private void serveRequest(Request request){
+        if (request == null){
+            return;
+        }
 
+        switch (request.getType()){
+            case SUBSCRIBE -> subscribe(request);
+            case UNSUBSCRIBE -> unsubscribe(request);
+            case REMOVE_SUBSCRIPTION -> removeSubscription(request);
+            case ADD_TOPIC -> addTopic(request);
+            case REMOVE_TOPIC -> removeTopic(request);
+            case NEWS -> publishNews(request);
+            default -> GlobalLogger.getLogger().warning("[MainServer] - Couldn't find an operation: " + request.getType());
+        }
+    }
 
+    private void publishNews(Request request) {
+    }
+
+    private void removeTopic(Request request) {
+        if (request.getMessage() != null){
+            availableTopics.remove(request.getMessage());
+        }
+    }
+
+    private void addTopic(Request request) {
+        if (request.getMessage() != null && !availableTopics.contains(request.getMessage())){
+           availableTopics.add(request.getMessage());
+        }
+    }
+
+    private void removeSubscription(Request request) {
+    }
+
+    private void unsubscribe(Request request) {
 
     }
 
+    private void subscribe(Request request) {
+        Long userId;
+        String topic;
+        if (request.getMessage() != null){
+            try {
+                String[] splitedMessage = request.getMessage().split(";");
+                userId = Long.parseLong(splitedMessage[0]);
+                topic = splitedMessage[1];
+            } catch (Exception e){
+                GlobalLogger.getLogger().severe("[MainServer] - Couldn't parse received subscribe message: " + request.getMessage());
+            }
 
+            //TODO
+
+
+        }
+    }
 
 }
