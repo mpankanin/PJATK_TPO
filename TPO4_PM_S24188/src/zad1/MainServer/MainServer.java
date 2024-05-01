@@ -18,13 +18,13 @@ public class MainServer {
     private final String host;
     private final int port;
 
-    private ArrayList<String> availableTopics;
-    private Map<Long, List<String>> usersSubscriptions;
+    private Set<String> availableTopics;
+    private Map<Long, Set<String>> usersSubscriptions;
 
     public MainServer(String host, int port) {
         this.host = host;
         this.port = port;
-        this.availableTopics = new ArrayList<>();
+        this.availableTopics = new HashSet<>();
         this.usersSubscriptions = new HashMap<>();
         start();
     }
@@ -111,14 +111,16 @@ public class MainServer {
         }
 
         switch (request.getType()){
-            case SUBSCRIBE -> subscribe(request);
-            case UNSUBSCRIBE -> unsubscribe(request);
+            case SUBSCRIBE, UNSUBSCRIBE -> manageUserSubscription(request);
             case REMOVE_SUBSCRIPTION -> removeSubscription(request);
             case ADD_TOPIC -> addTopic(request);
             case REMOVE_TOPIC -> removeTopic(request);
             case NEWS -> publishNews(request);
             default -> GlobalLogger.getLogger().warning("[MainServer] - Couldn't find an operation: " + request.getType());
         }
+    }
+
+    private void removeSubscription(Request request) {
     }
 
     private void publishNews(Request request) {
@@ -136,28 +138,43 @@ public class MainServer {
         }
     }
 
-    private void removeSubscription(Request request) {
-    }
 
-    private void unsubscribe(Request request) {
 
-    }
-
-    private void subscribe(Request request) {
-        Long userId;
+    private void manageUserSubscription(Request request) {
+        long userId;
         String topic;
         if (request.getMessage() != null){
             try {
-                String[] splitedMessage = request.getMessage().split(";");
-                userId = Long.parseLong(splitedMessage[0]);
-                topic = splitedMessage[1];
+                String[] splitMessage = request.getMessage().split(";");
+                userId = Long.parseLong(splitMessage[0]);
+                topic = splitMessage[1];
+                if(topic != null){
+                    switch (request.getType()){
+                        case SUBSCRIBE -> addUserSubscription(userId, topic);
+                        case UNSUBSCRIBE -> removeUserSubscription(userId, topic);
+                    }
+                }
             } catch (Exception e){
-                GlobalLogger.getLogger().severe("[MainServer] - Couldn't parse received subscribe message: " + request.getMessage());
+                GlobalLogger.getLogger().severe("[MainServer] - Couldn't parse received message: " + request.getMessage());
             }
+        }
+    }
 
-            //TODO
+    private void addUserSubscription(Long userId, String topic){
+        GlobalLogger.getLogger().info("[MainServer] - Adding user's subscription (" + userId + ", " + topic + ')');
+        Set<String> subscriptions = usersSubscriptions.get(userId);
+        if (subscriptions == null){
+            subscriptions = new HashSet<>();
+        }
+        subscriptions.add(topic);
+        usersSubscriptions.put(userId, subscriptions);
+    }
 
-
+    private void removeUserSubscription(Long userId, String topic){
+        GlobalLogger.getLogger().info("[MainServer] - Removing user's subscription (" + userId + ", " + topic + ')');
+        Set<String> subscriptions = usersSubscriptions.get(userId);
+        if (subscriptions != null){
+            subscriptions.remove(topic);
         }
     }
 
