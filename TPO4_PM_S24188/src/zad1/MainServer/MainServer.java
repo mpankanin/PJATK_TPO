@@ -1,16 +1,13 @@
 package zad1.MainServer;
 
-import zad1.Util.Request;
 import zad1.Util.GlobalLogger;
+import zad1.Util.Request;
 
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.net.InetSocketAddress;
-import java.nio.channels.Channels;
-import java.nio.channels.SelectionKey;
-import java.nio.channels.Selector;
-import java.nio.channels.ServerSocketChannel;
-import java.nio.channels.SocketChannel;
+import java.nio.channels.*;
+import java.nio.charset.Charset;
 import java.util.*;
 
 public class MainServer {
@@ -19,7 +16,8 @@ public class MainServer {
     private final int port;
 
     private Set<String> availableTopics;
-    private Map<Long, Set<String>> usersSubscriptions;
+    private Map<Integer, Set<String>> usersSubscriptions;
+    private Charset charset = Charset.defaultCharset();
 
     public MainServer(String host, int port) {
         this.host = host;
@@ -59,7 +57,7 @@ public class MainServer {
                         GlobalLogger.getLogger().info("[MainServer] - Connection accepted: " + clientChannel.toString());
 
                         clientChannel.configureBlocking(false);
-                        clientChannel.register(selector, SelectionKey.OP_READ | SelectionKey.OP_WRITE);
+                        clientChannel.register(selector, SelectionKey.OP_READ);
 
                         continue;
                     }
@@ -68,13 +66,6 @@ public class MainServer {
                         SocketChannel clientChannel = (SocketChannel) key.channel();
                         Request request = readRequest(clientChannel);
                         serveRequest(request);
-
-                        continue;
-                    }
-
-                    if (key.isWritable()){
-                       SocketChannel clientChannel = (SocketChannel) key.channel();
-                       writeRequest(clientChannel);
                     }
                 }
             }
@@ -100,9 +91,18 @@ public class MainServer {
         return request;
     }
 
-    private void writeRequest(SocketChannel channel){
-        GlobalLogger.getLogger().info("[MainServer] - Writing a request");
+    private void writeResponse(int port, String response){
+        GlobalLogger.getLogger().info("[MainServer] - Writing a response to: " + port);
+        try {
+            SocketChannel channel = SocketChannel.open();
+            channel.configureBlocking(false);
 
+            channel.connect(new InetSocketAddress("localhost", port));
+            channel.write(charset.encode(response));
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        GlobalLogger.getLogger().info("[MainServer] - Message has been sent successfully to: " + port);
     }
 
     private void serveRequest(Request request){
@@ -121,9 +121,30 @@ public class MainServer {
     }
 
     private void removeSubscription(Request request) {
+        try {
+            String[] splitMessage = request.getMessage().split(";");
+            Integer port = Integer.parseInt(splitMessage[0]);
+            Set<String> subscriptions = usersSubscriptions.get(port);
+            subscriptions.remove(splitMessage[1]);
+            usersSubscriptions.put(port, subscriptions);
+        } catch (Exception e){
+            GlobalLogger.getLogger().severe("[MainServer] - " + e);
+        }
     }
 
     private void publishNews(Request request) {
+        if (request.getMessage() != null){
+            try {
+                String[] splitMessage = request.getMessage().split(";");
+                List<Integer> portsToSend = getUserIdsForTopic(splitMessage[0]);
+                String news = splitMessage[1];
+                for (Integer port : portsToSend){
+                    writeResponse(port, news);
+                }
+            } catch (Exception e){
+                GlobalLogger.getLogger().severe("[MainServer] - Couldn't parse received message: " + request.getMessage());
+            }
+        }
     }
 
     private void removeTopic(Request request) {
@@ -138,15 +159,13 @@ public class MainServer {
         }
     }
 
-
-
     private void manageUserSubscription(Request request) {
-        long userId;
+        int userId;
         String topic;
         if (request.getMessage() != null){
             try {
                 String[] splitMessage = request.getMessage().split(";");
-                userId = Long.parseLong(splitMessage[0]);
+                userId = Integer.parseInt(splitMessage[0]);
                 topic = splitMessage[1];
                 if(topic != null){
                     switch (request.getType()){
@@ -160,7 +179,7 @@ public class MainServer {
         }
     }
 
-    private void addUserSubscription(Long userId, String topic){
+    private void addUserSubscription(Integer userId, String topic){
         GlobalLogger.getLogger().info("[MainServer] - Adding user's subscription (" + userId + ", " + topic + ')');
         Set<String> subscriptions = usersSubscriptions.get(userId);
         if (subscriptions == null){
@@ -170,12 +189,22 @@ public class MainServer {
         usersSubscriptions.put(userId, subscriptions);
     }
 
-    private void removeUserSubscription(Long userId, String topic){
+    private void removeUserSubscription(Integer userId, String topic){
         GlobalLogger.getLogger().info("[MainServer] - Removing user's subscription (" + userId + ", " + topic + ')');
         Set<String> subscriptions = usersSubscriptions.get(userId);
         if (subscriptions != null){
             subscriptions.remove(topic);
         }
+    }
+
+    private List<Integer> getUserIdsForTopic(String topic) {
+        List<Integer> userIds = new ArrayList<>();
+        for (Map.Entry<Integer, Set<String>> entry : usersSubscriptions.entrySet()) {
+            if (entry.getValue().contains(topic)) {
+                userIds.add(entry.getKey());
+            }
+        }
+        return userIds;
     }
 
 }
