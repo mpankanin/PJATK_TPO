@@ -7,5 +7,6 @@ public enum RequestType {
     REMOVE_SUBSCRIPTION,
     ADD_TOPIC,
     REMOVE_TOPIC,
-    NEWS,
+    PUBLISH_NEWS,
+    SERVER_NEWS
 }

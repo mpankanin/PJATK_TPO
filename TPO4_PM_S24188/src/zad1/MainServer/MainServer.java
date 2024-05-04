@@ -1,7 +1,9 @@
 package zad1.MainServer;
 
+import org.json.JSONObject;
 import zad1.Util.GlobalLogger;
 import zad1.Util.Request;
+import zad1.Util.RequestType;
 
 import java.io.IOException;
 import java.io.ObjectInputStream;
@@ -17,7 +19,7 @@ public class MainServer {
 
     private Set<String> availableTopics;
     private Map<Integer, Set<String>> usersSubscriptions;
-    private Charset charset = Charset.defaultCharset();
+    private final Charset charset = Charset.defaultCharset();
 
     public MainServer(String host, int port) {
         this.host = host;
@@ -64,7 +66,7 @@ public class MainServer {
 
                     if (key.isReadable()){
                         SocketChannel clientChannel = (SocketChannel) key.channel();
-                        Request request = readRequest(clientChannel);
+                        Request request = Request.readRequest(clientChannel, "[MainServer]");
                         serveRequest(request);
                     }
                 }
@@ -74,31 +76,13 @@ public class MainServer {
         }
     }
 
-    private Request readRequest(SocketChannel channel){
-        if (!channel.isOpen()){
-           return null;
-        }
-        GlobalLogger.getLogger().info("[MainServer] - Reading a client's request.");
-
-        Request request = null;
-        try (ObjectInputStream inputStream = new ObjectInputStream(Channels.newInputStream(channel))){
-            request = (Request) inputStream.readObject();
-        } catch (IOException | ClassNotFoundException e) {
-            GlobalLogger.getLogger().severe(e.toString());
-        }
-
-        GlobalLogger.getLogger().info("[MainServer] - The client's request has been read.");
-        return request;
-    }
-
-    private void writeResponse(int port, String response){
+    private void writeResponse(int port, JSONObject response){
         GlobalLogger.getLogger().info("[MainServer] - Writing a response to: " + port);
-        try {
-            SocketChannel channel = SocketChannel.open();
+        try (SocketChannel channel = SocketChannel.open()){
             channel.configureBlocking(false);
 
             channel.connect(new InetSocketAddress("localhost", port));
-            channel.write(charset.encode(response));
+            channel.write(charset.encode(response.toString()));
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -115,7 +99,7 @@ public class MainServer {
             case REMOVE_SUBSCRIPTION -> removeSubscription(request);
             case ADD_TOPIC -> addTopic(request);
             case REMOVE_TOPIC -> removeTopic(request);
-            case NEWS -> publishNews(request);
+            case PUBLISH_NEWS -> publishNews(request);
             default -> GlobalLogger.getLogger().warning("[MainServer] - Couldn't find an operation: " + request.getType());
         }
     }
@@ -139,7 +123,8 @@ public class MainServer {
                 List<Integer> portsToSend = getUserIdsForTopic(splitMessage[0]);
                 String news = splitMessage[1];
                 for (Integer port : portsToSend){
-                    writeResponse(port, news);
+                    Request response = new Request(RequestType.SERVER_NEWS, null, news);
+                    writeResponse(port, response.toJson());
                 }
             } catch (Exception e){
                 GlobalLogger.getLogger().severe("[MainServer] - Couldn't parse received message: " + request.getMessage());
