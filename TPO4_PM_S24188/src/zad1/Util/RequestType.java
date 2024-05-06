@@ -8,5 +8,6 @@ public enum RequestType {
     ADD_TOPIC,
     REMOVE_TOPIC,
     PUBLISH_NEWS,
-    SERVER_NEWS
+    SERVER_NEWS,
+    OK
 }

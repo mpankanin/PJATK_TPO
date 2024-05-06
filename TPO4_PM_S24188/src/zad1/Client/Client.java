@@ -49,10 +49,11 @@ public class Client {
 
             while (true) {
                 selector.select();
-                Iterator<SelectionKey> keyIterator = selector.selectedKeys().iterator();
+                Iterator<SelectionKey> iterator = selector.selectedKeys().iterator();
 
-                while (keyIterator.hasNext()) {
-                    SelectionKey key = keyIterator.next();
+                while (iterator.hasNext()) {
+                    SelectionKey key = iterator.next();
+                    iterator.remove();
 
                     if (key.isReadable()) {
                         SocketChannel clientChannel = (SocketChannel) key.channel();
@@ -67,23 +68,47 @@ public class Client {
     }
 
     private void serveRequest(Request request) {
+        if (request == null){
+            return;
+        }
 
+        switch (request.getType()){
+            case OK -> subscribe(request);
+            case REMOVE_SUBSCRIPTION -> removeSubscription(request);
+            default -> GlobalLogger.getLogger().warning("[Client] - Couldn't find an operation: " + request.getType());
+        }
     }
 
     private void sendRequest(Request request){
 
     }
 
-    private void subscribe(String topic){
+    private void requestSubscribtion(String topic){
 
+    }
+
+    private void subscribe(Request request){
+        if (request.getMessage() == null){
+            GlobalLogger.getLogger().severe("[Client] - Subscription request is empty");
+            return;
+        }
+
+        subscriptions.add(request.getMessage());
+        GlobalLogger.getLogger().info("[Client] - Subscription has been added: " + request.getMessage());
     }
 
     private void unsubscribe(String topic){
 
     }
 
-    private void removeSubscription(String topic){
+    private void removeSubscription(Request request){
+        if (request.getMessage() == null){
+            GlobalLogger.getLogger().severe("[Client] - Remove subscription request is empty");
+            return;
+        }
 
+        subscriptions.remove(request.getMessage());
+        GlobalLogger.getLogger().info("[Client] - Subscription has been removed: " + request.getMessage());
     }
 
 }
