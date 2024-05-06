@@ -6,9 +6,11 @@ import zad1.Util.Request;
 import zad1.Util.RequestType;
 
 import java.io.IOException;
-import java.io.ObjectInputStream;
 import java.net.InetSocketAddress;
-import java.nio.channels.*;
+import java.nio.channels.SelectionKey;
+import java.nio.channels.Selector;
+import java.nio.channels.ServerSocketChannel;
+import java.nio.channels.SocketChannel;
 import java.nio.charset.Charset;
 import java.util.*;
 
@@ -19,13 +21,14 @@ public class MainServer {
 
     private Set<String> availableTopics;
     private Map<Integer, Set<String>> usersSubscriptions;
-    private final Charset charset = Charset.defaultCharset();
+    private final Charset charset;
 
     public MainServer(String host, int port) {
         this.host = host;
         this.port = port;
         this.availableTopics = new HashSet<>();
         this.usersSubscriptions = new HashMap<>();
+        this.charset = Charset.defaultCharset();
         start();
     }
 
@@ -90,7 +93,7 @@ public class MainServer {
     }
 
     private void serveRequest(Request request){
-        if (request == null){
+        if (request == null || request.getType() == null){
             return;
         }
 
@@ -123,7 +126,7 @@ public class MainServer {
                 List<Integer> portsToSend = getUserIdsForTopic(splitMessage[0]);
                 String news = splitMessage[1];
                 for (Integer port : portsToSend){
-                    Request response = new Request(RequestType.SERVER_NEWS, null, news);
+                    Request response = new Request(RequestType.SERVER_NEWS, news);
                     writeResponse(port, response.toJson());
                 }
             } catch (Exception e){

@@ -5,6 +5,8 @@ import org.json.JSONObject;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.Serializable;
+import java.nio.ByteBuffer;
+import java.nio.CharBuffer;
 import java.nio.channels.Channels;
 import java.nio.channels.SocketChannel;
 import java.util.Arrays;
@@ -13,12 +15,10 @@ import java.util.Optional;
 public class Request implements Serializable {
 
     private RequestType type;
-    private int responsePort;
     private String message;
 
-    public Request(RequestType type, Integer responsePort, String message) {
+    public Request(RequestType type, String message) {
         this.type = type;
-        this.responsePort = responsePort;
         this.message = message;
     }
 
@@ -28,14 +28,6 @@ public class Request implements Serializable {
 
     public void setType(RequestType type) {
         this.type = type;
-    }
-
-    public int getResponsePort() {
-        return responsePort;
-    }
-
-    public void setResponsePort(int responsePort) {
-        this.responsePort = responsePort;
     }
 
     public String getMessage() {
@@ -49,7 +41,6 @@ public class Request implements Serializable {
     public JSONObject toJson(){
         JSONObject json = new JSONObject();
         json.put("type", type);
-        json.put("responsePort", responsePort);
         json.put("message", message);
         return json;
     }
@@ -59,25 +50,35 @@ public class Request implements Serializable {
             return null;
         }
         GlobalLogger.getLogger().info(logRole + " - Reading a client's request.");
+        ByteBuffer buffer = ByteBuffer.allocate(1024);
 
-        JSONObject json = null;
+        JSONObject json;
         Request request = null;
-        try (ObjectInputStream inputStream = new ObjectInputStream(Channels.newInputStream(channel))){
+        try {
+            StringBuilder jsonStringBuilder = new StringBuilder();
+            buffer.clear();
 
+            //Read loop
+            int bytesRead = channel.read(buffer);
+            if (bytesRead > 0) {
+                GlobalLogger.getLogger().info(logRole + " - Read " + bytesRead + " bytes.");
+                buffer.flip();
+                while (buffer.hasRemaining()) {
+                    jsonStringBuilder.append((char) buffer.get());
+                }
+            }
 
-
-            request = (Request) inputStream.readObject(); //TODO READ JSON.
+            json = new JSONObject(jsonStringBuilder.toString());
 
             request = new Request(
                     getRequestType(json),
-                    getRequestPort(json),
                     getRequestMessage(json)
                     );
-        } catch (IOException | ClassNotFoundException e) {
+        } catch (IOException e) {
             GlobalLogger.getLogger().severe(e.toString());
         }
 
-        GlobalLogger.getLogger().info(logRole + " - The client's request has been read.");
+        GlobalLogger.getLogger().info(logRole + " - The client's request has been read: " + request);
         return request;
     }
 
@@ -94,12 +95,16 @@ public class Request implements Serializable {
         }
     }
 
-    private static Integer getRequestPort(JSONObject json){
-        return json.getInt("responsePort");
-    }
-
     private static String getRequestMessage(JSONObject json){
         return json.getString("message");
+    }
+
+    @Override
+    public String toString() {
+        return "Request{" +
+                "type=" + type +
+                ", message='" + message + '\'' +
+                '}';
     }
 
 }

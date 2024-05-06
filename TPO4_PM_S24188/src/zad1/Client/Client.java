@@ -2,9 +2,11 @@ package zad1.Client;
 
 import zad1.Util.GlobalLogger;
 import zad1.Util.Request;
+import zad1.Util.RequestType;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
@@ -19,14 +21,15 @@ public class Client {
     private Charset charset;
     private List<String> subscriptions;
 
-    public Client(Integer serverPort, String host) {
+    public Client(int serverPort, String host) {
         start(new InetSocketAddress(host, serverPort));
         charset = Charset.defaultCharset();
         subscriptions = new ArrayList<>();
+        new ClientGUI(this);
     }
 
     public static void main(String[] args) {
-
+        new Client(20100, "localhost");
     }
 
     private void start(InetSocketAddress inetAdr){
@@ -35,6 +38,7 @@ public class Client {
             this.channel = SocketChannel.open();
             channel.configureBlocking(false);
             channel.connect(inetAdr);
+            readRequests();
         } catch (IOException e) {
             GlobalLogger.getLogger().severe("[Client] - " + e);
             System.exit(1);
@@ -73,23 +77,44 @@ public class Client {
         }
 
         switch (request.getType()){
-            case OK -> subscribe(request);
+            case OK_SUBSCRIBE -> subscribe(request);
             case REMOVE_SUBSCRIPTION -> removeSubscription(request);
             default -> GlobalLogger.getLogger().warning("[Client] - Couldn't find an operation: " + request.getType());
         }
     }
 
     private void sendRequest(Request request){
+        GlobalLogger.getLogger().info("[Client] - sending request to: " + channel.toString());
+        try {
+            if(!channel.isConnected()){
+                while (!channel.finishConnect()){
 
+                }
+            }
+            String jsonString = request.toJson().toString();
+            ByteBuffer buffer = charset.encode(jsonString);
+            while(buffer.hasRemaining()) {
+                channel.write(buffer);
+            }
+        } catch (IOException e) {
+            GlobalLogger.getLogger().severe("[Client] - " + e);
+        }
+        GlobalLogger.getLogger().info("[Client] - request has been sent to: " + channel.toString());
     }
 
-    private void requestSubscribtion(String topic){
+    public void requestSubscribe(String topic){
+        if(topic == null){
+            GlobalLogger.getLogger().info("[Client] - requestSubscription - input data is null");
+            return;
+        }
 
+        Request request = new Request(RequestType.SUBSCRIBE, topic);
+        sendRequest(request);
     }
 
     private void subscribe(Request request){
         if (request.getMessage() == null){
-            GlobalLogger.getLogger().severe("[Client] - Subscription request is empty");
+            GlobalLogger.getLogger().severe("[Client] - Subscribe request is empty");
             return;
         }
 
@@ -97,8 +122,14 @@ public class Client {
         GlobalLogger.getLogger().info("[Client] - Subscription has been added: " + request.getMessage());
     }
 
-    private void unsubscribe(String topic){
+    public void requestUnsubscribe(String topic){
+        if(topic == null){
+            GlobalLogger.getLogger().info("[Client] - request unsubscribe - input data is null");
+            return;
+        }
 
+        Request request = new Request(RequestType.UNSUBSCRIBE, topic);
+        sendRequest(request);
     }
 
     private void removeSubscription(Request request){
