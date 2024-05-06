@@ -9,6 +9,7 @@ import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
 import java.nio.channels.Channels;
 import java.nio.channels.SocketChannel;
+import java.nio.charset.Charset;
 import java.util.Arrays;
 import java.util.Optional;
 
@@ -93,6 +94,25 @@ public class Request implements Serializable {
         }else {
             return requestType.get();
         }
+    }
+
+    public static void sendRequest(Request request, SocketChannel channel, Charset charset, String logRole){
+        GlobalLogger.getLogger().info(logRole + " - sending request to: " + channel.toString());
+        try {
+            if(!channel.isConnected()){
+                while (!channel.finishConnect()){
+                    //do something
+                }
+            }
+            String jsonString = request.toJson().toString();
+            ByteBuffer buffer = charset.encode(jsonString);
+            while(buffer.hasRemaining()) {
+                channel.write(buffer);
+            }
+        } catch (IOException e) {
+            GlobalLogger.getLogger().severe(logRole + " - " + e);
+        }
+        GlobalLogger.getLogger().info(logRole + " - request has been sent to: " + channel);
     }
 
     private static String getRequestMessage(JSONObject json){

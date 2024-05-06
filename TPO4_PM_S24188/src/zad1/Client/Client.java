@@ -21,7 +21,7 @@ public class Client {
     private Charset charset;
     private List<String> subscriptions;
 
-    public Client(int serverPort, String host) {
+    public Client(String host, int serverPort) {
         start(new InetSocketAddress(host, serverPort));
         charset = Charset.defaultCharset();
         subscriptions = new ArrayList<>();
@@ -29,7 +29,7 @@ public class Client {
     }
 
     public static void main(String[] args) {
-        new Client(20100, "localhost");
+        new Client("localhost", 20100);
     }
 
     private void start(InetSocketAddress inetAdr){
@@ -83,25 +83,6 @@ public class Client {
         }
     }
 
-    private void sendRequest(Request request){
-        GlobalLogger.getLogger().info("[Client] - sending request to: " + channel.toString());
-        try {
-            if(!channel.isConnected()){
-                while (!channel.finishConnect()){
-
-                }
-            }
-            String jsonString = request.toJson().toString();
-            ByteBuffer buffer = charset.encode(jsonString);
-            while(buffer.hasRemaining()) {
-                channel.write(buffer);
-            }
-        } catch (IOException e) {
-            GlobalLogger.getLogger().severe("[Client] - " + e);
-        }
-        GlobalLogger.getLogger().info("[Client] - request has been sent to: " + channel.toString());
-    }
-
     public void requestSubscribe(String topic){
         if(topic == null){
             GlobalLogger.getLogger().info("[Client] - requestSubscription - input data is null");
@@ -109,7 +90,7 @@ public class Client {
         }
 
         Request request = new Request(RequestType.SUBSCRIBE, topic);
-        sendRequest(request);
+        Request.sendRequest(request, channel, charset, "[Client]");
     }
 
     private void subscribe(Request request){
@@ -129,7 +110,7 @@ public class Client {
         }
 
         Request request = new Request(RequestType.UNSUBSCRIBE, topic);
-        sendRequest(request);
+        Request.sendRequest(request, channel, charset, "[Client]");
     }
 
     private void removeSubscription(Request request){
