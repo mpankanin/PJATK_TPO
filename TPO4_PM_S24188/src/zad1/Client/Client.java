@@ -26,6 +26,7 @@ public class Client {
         charset = Charset.defaultCharset();
         subscriptions = new ArrayList<>();
         new ClientGUI(this);
+        readRequests();
     }
 
     public static void main(String[] args) {
@@ -38,7 +39,6 @@ public class Client {
             this.channel = SocketChannel.open();
             channel.configureBlocking(false);
             channel.connect(inetAdr);
-            readRequests();
         } catch (IOException e) {
             GlobalLogger.getLogger().severe("[Client] - " + e);
             System.exit(1);
@@ -83,7 +83,7 @@ public class Client {
         }
     }
 
-    public void requestSubscribe(String topic){
+    public String requestSubscribe(String topic){
         if(topic == null){
             GlobalLogger.getLogger().info("[Client] - requestSubscription - input data is null");
             return;
@@ -103,7 +103,7 @@ public class Client {
         GlobalLogger.getLogger().info("[Client] - Subscription has been added: " + request.getMessage());
     }
 
-    public void requestUnsubscribe(String topic){
+    public String requestUnsubscribe(String topic){
         if(topic == null){
             GlobalLogger.getLogger().info("[Client] - request unsubscribe - input data is null");
             return;

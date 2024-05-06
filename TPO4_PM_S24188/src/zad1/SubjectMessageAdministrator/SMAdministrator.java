@@ -21,6 +21,7 @@ public class SMAdministrator {
         start(new InetSocketAddress(host, serverPort));
         charset = Charset.defaultCharset();
         topics = new HashSet<>();
+        new SMAdministratorGUI(this);
     }
 
     public static void main(String[] args) {
@@ -53,10 +54,10 @@ public class SMAdministrator {
             Request.sendRequest(request, channel, charset, "[Admin]");
             topics.add(topic);
             GlobalLogger.getLogger().info("[Admin] - topic has been added: " + topic);
-            return "OK - requestRemoveTopic - topic added successfully: " + topic;
+            return "OK - requestAddTopic - topic added successfully: " + topic;
         }else {
             GlobalLogger.getLogger().warning("[Admin] - provided topic already exists - operation add topic ignored");
-            return "ERROR - requestRemoveTopic - provided topic doesn't exist - operation ignored";
+            return "ERROR - requestAddTopic - provided topic doesn't exist - operation ignored";
         }
     }
 

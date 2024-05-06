@@ -37,9 +37,11 @@ public class ClientGUI extends JFrame {
             inputField.setText("");
             String requestType = (String) requestTypeComboBox.getSelectedItem();
             if ("Subscribe".equals(requestType)) {
-                client.requestSubscribe(text);
+                String output = client.requestSubscribe(text);
+                appendMessage(output + '\n');
             } else if ("Unsubscribe".equals(requestType)) {
-                client.requestUnsubscribe(text);
+                String output = client.requestUnsubscribe(text);
+                appendMessage(output + '\n');
             }
         });
 
