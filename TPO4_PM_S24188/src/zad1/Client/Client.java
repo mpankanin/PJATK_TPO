@@ -86,34 +86,37 @@ public class Client {
     public String requestSubscribe(String topic){
         if(topic == null){
             GlobalLogger.getLogger().info("[Client] - requestSubscription - input data is null");
-            return;
+            return "ERROR - requestSubscribe - provided topic is empty";
         }
 
         Request request = new Request(RequestType.SUBSCRIBE, topic);
         Request.sendRequest(request, channel, charset, "[Client]");
+        return "OK - requestSubscribe - subscription added successfully: " + topic;
     }
 
-    private void subscribe(Request request){
+    private String subscribe(Request request){
         if (request.getMessage() == null){
             GlobalLogger.getLogger().severe("[Client] - Subscribe request is empty");
-            return;
+            return "ERROR - requestSubscribe - provided topic is empty";
         }
 
         subscriptions.add(request.getMessage());
         GlobalLogger.getLogger().info("[Client] - Subscription has been added: " + request.getMessage());
+        return "OK - requestSubscribe - subscription added successfully: " + request.getMessage();
     }
 
     public String requestUnsubscribe(String topic){
         if(topic == null){
             GlobalLogger.getLogger().info("[Client] - request unsubscribe - input data is null");
-            return;
+            return "ERROR - requestUnsubscribe - provided topic is empty";
         }
 
         Request request = new Request(RequestType.UNSUBSCRIBE, topic);
         Request.sendRequest(request, channel, charset, "[Client]");
+        return "OK - requestUnsubscribe - request has been sent successfully: " + topic;
     }
 
-    private void removeSubscription(Request request){
+    private String removeSubscription(Request request){
         if (request.getMessage() == null){
             GlobalLogger.getLogger().severe("[Client] - Remove subscription request is empty");
             return;
