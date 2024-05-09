@@ -21,12 +21,13 @@ public class Client {
     private SocketChannel channel = null;
     private Charset charset;
     private List<String> subscriptions;
+    private ClientGUI clientGUI;
 
     public Client(String host, int serverPort) {
         start(new InetSocketAddress(host, serverPort));
         charset = Charset.defaultCharset();
         subscriptions = new ArrayList<>();
-        new ClientGUI(this);
+        clientGUI = new ClientGUI(this);
         readRequests();
     }
 
@@ -80,6 +81,7 @@ public class Client {
         switch (request.getType()){
             case OK_SUBSCRIBE -> subscribe(request);
             case REMOVE_SUBSCRIPTION -> removeSubscription(request);
+            case SERVER_NEWS -> clientGUI.appendMessage(request.getMessage());
             default -> GlobalLogger.getLogger().warning("[Client] - Couldn't find an operation: " + request.getType());
         }
     }
@@ -90,8 +92,7 @@ public class Client {
             return "ERROR - requestSubscribe - provided topic is empty";
         }
 
-        String message = appendPort(topic);
-        Request request = new Request(RequestType.SUBSCRIBE, message);
+        Request request = new Request(RequestType.SUBSCRIBE, topic);
         Request.sendRequest(request, channel, charset, "[Client]");
         return "OK - requestSubscribe - subscription request has been sent: " + topic;
     }
@@ -112,8 +113,7 @@ public class Client {
             return "ERROR - requestUnsubscribe - provided topic is empty";
         }
 
-        String message = appendPort(topic);
-        Request request = new Request(RequestType.UNSUBSCRIBE, message);
+        Request request = new Request(RequestType.UNSUBSCRIBE, topic);
         Request.sendRequest(request, channel, charset, "[Client]");
         return "OK - requestUnsubscribe - request has been sent successfully: " + topic;
     }
@@ -126,18 +126,6 @@ public class Client {
 
         subscriptions.remove(request.getMessage());
         GlobalLogger.getLogger().info("[Client] - Subscription has been removed: " + request.getMessage());
-    }
-
-    private String appendPort(String topic){
-        String channelInfo = channel.toString();
-        String[] splitChannelInfo = channelInfo.split(" ");
-        GlobalLogger.getLogger().info(Arrays.toString(splitChannelInfo));
-        String localInfo = splitChannelInfo[1];
-        String[] splitLocalInfo = localInfo.split(":");
-        GlobalLogger.getLogger().info(Arrays.toString(splitLocalInfo));
-        int port = Integer.parseInt(splitLocalInfo[1]);
-        GlobalLogger.getLogger().info(String.valueOf(port));
-        return port + ";" + topic;
     }
 
 }

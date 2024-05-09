@@ -49,6 +49,6 @@ public class ClientGUI extends JFrame {
     }
 
     public void appendMessage(String message) {
-        chatArea.append(message + "\n");
+        chatArea.append(message);
     }
 }
