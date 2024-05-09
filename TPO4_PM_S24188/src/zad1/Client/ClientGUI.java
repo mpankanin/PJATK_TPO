@@ -8,10 +8,8 @@ public class ClientGUI extends JFrame {
     private JTextArea chatArea;
     private JButton sendButton;
     private JComboBox<String> requestTypeComboBox;
-    private Client client;
 
     public ClientGUI(Client client) {
-        this.client = client;
 
         setTitle("Client");
         setSize(600, 600);
@@ -49,6 +47,7 @@ public class ClientGUI extends JFrame {
     }
 
     public void appendMessage(String message) {
-        chatArea.append(message);
+        chatArea.append(message + "\n");
     }
+
 }

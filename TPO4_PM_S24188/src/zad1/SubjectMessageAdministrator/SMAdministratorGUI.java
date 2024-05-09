@@ -69,7 +69,7 @@ public class SMAdministratorGUI extends JFrame {
         });
 
         publishNewsButton.addActionListener((ActionEvent e) -> {
-            String topic = topicField.getText();
+            String topic = topicNewsField.getText();
             String news = newsField.getText();
             String output = smAdministrator.publishNews(topic, news);
             displayMessage(output);

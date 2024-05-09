@@ -94,7 +94,7 @@ public class Client {
 
         Request request = new Request(RequestType.SUBSCRIBE, topic);
         Request.sendRequest(request, channel, charset, "[Client]");
-        return "OK - requestSubscribe - subscription request has been sent: " + topic;
+        return "OK - requestSubscribe - subscription request has been sent: " + request.getMessage();
     }
 
     private void subscribe(Request request){
@@ -104,6 +104,7 @@ public class Client {
         }
 
         subscriptions.add(request.getMessage());
+        clientGUI.appendMessage("Subscription has been added: " + request.getMessage());
         GlobalLogger.getLogger().info("[Client] - Subscription has been added: " + request.getMessage());
     }
 
@@ -115,7 +116,7 @@ public class Client {
 
         Request request = new Request(RequestType.UNSUBSCRIBE, topic);
         Request.sendRequest(request, channel, charset, "[Client]");
-        return "OK - requestUnsubscribe - request has been sent successfully: " + topic;
+        return "OK - requestUnsubscribe - request has been sent successfully: " + request.getMessage();
     }
 
     private void removeSubscription(Request request){
@@ -125,6 +126,7 @@ public class Client {
         }
 
         subscriptions.remove(request.getMessage());
+        clientGUI.appendMessage("Subscription has been removed: " + request.getMessage());
         GlobalLogger.getLogger().info("[Client] - Subscription has been removed: " + request.getMessage());
     }
 

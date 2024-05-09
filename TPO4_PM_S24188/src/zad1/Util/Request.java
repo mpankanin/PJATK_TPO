@@ -24,16 +24,8 @@ public class Request implements Serializable {
         return type;
     }
 
-    public void setType(RequestType type) {
-        this.type = type;
-    }
-
     public String getMessage() {
         return message;
-    }
-
-    public void setMessage(String message) {
-        this.message = message;
     }
 
     public JSONObject toJson(){
