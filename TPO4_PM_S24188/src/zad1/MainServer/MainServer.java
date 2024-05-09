@@ -105,6 +105,19 @@ public class MainServer {
         }
     }
 
+    private void sendRemoveInfo(Request request) {
+        List<SocketChannel> socketsToSend = getUserSocketsForTopic(request.getMessage());
+        for (SocketChannel socket : socketsToSend){
+            writeResponse(socket, request.toJson());
+        }
+    }
+
+    private void sendAddInfo(Request request) {
+        for (SocketChannel socket : usersSubscriptions.keySet()){
+            writeResponse(socket, request.toJson());
+        }
+    }
+
     private void removeSubscription(SocketChannel socket, Request request) {
         try {
             Set<String> subscriptions = usersSubscriptions.get(socket);
@@ -134,12 +147,16 @@ public class MainServer {
     private void removeTopic(Request request) {
         if (request.getMessage() != null){
             availableTopics.remove(request.getMessage());
+            Request info = new Request(RequestType.SERVER_NEWS, "Topic: " + request.getMessage() + " is now unavailable.");
+            sendAddInfo(info);
         }
     }
 
     private void addTopic(Request request) {
         if (request.getMessage() != null){
            availableTopics.add(request.getMessage());
+           Request info = new Request(RequestType.SERVER_NEWS, "Topic: " + request.getMessage() + " is now available");
+           sendAddInfo(info);
         }
     }
 
