@@ -71,7 +71,7 @@ public class MainServer {
                     if (key.isReadable()){
                         SocketChannel clientChannel = (SocketChannel) key.channel();
                         Request request = Request.readRequest(clientChannel, "[MainServer]");
-                        serveRequest(request);
+                        serveRequest(clientChannel, request);
                     }
                 }
             }
@@ -80,27 +80,24 @@ public class MainServer {
         }
     }
 
-    private void writeResponse(int port, JSONObject response){
-        GlobalLogger.getLogger().info("[MainServer] - Writing a response to: " + port);
-        try (SocketChannel channel = SocketChannel.open()){
-            channel.configureBlocking(false);
-
-            channel.connect(new InetSocketAddress("localhost", port));
-            channel.write(charset.encode(response.toString()));
+    private void writeResponse(SocketChannel socket, JSONObject response){
+        GlobalLogger.getLogger().info("[MainServer] - Writing a response to: " + socket);
+        try {
+            socket.write(charset.encode(response.toString()));
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            GlobalLogger.getLogger().severe("[MainServer] - Couldn't write the message: " + response);
         }
-        GlobalLogger.getLogger().info("[MainServer] - Message has been sent successfully to: " + port);
+        GlobalLogger.getLogger().info("[MainServer] - Message has been sent successfully to: " + socket);
     }
 
-    private void serveRequest(Request request){
+    private void serveRequest(SocketChannel socket, Request request){
         if (request == null || request.getType() == null){
             return;
         }
 
         switch (request.getType()){
-            case SUBSCRIBE, UNSUBSCRIBE -> manageUserSubscription(request);
-            case REMOVE_SUBSCRIPTION -> removeSubscription(request);
+            case SUBSCRIBE, UNSUBSCRIBE -> manageUserSubscription(socket, request);
+            case REMOVE_SUBSCRIPTION -> removeSubscription(socket, request);
             case ADD_TOPIC -> addTopic(request);
             case REMOVE_TOPIC -> removeTopic(request);
             case PUBLISH_NEWS -> publishNews(request);
@@ -108,30 +105,25 @@ public class MainServer {
         }
     }
 
-    private void removeSubscription(Request request) {
-//        try {
-//            String[] splitMessage = request.getMessage().split(";");
-//            Integer port = Integer.parseInt(splitMessage[0]);
-//            Set<String> subscriptions = usersSubscriptions.get(port);
-//            subscriptions.remove(splitMessage[1]);
-//            usersSubscriptions.put(port, subscriptions);
-//        } catch (Exception e){
-//            GlobalLogger.getLogger().severe("[MainServer] - " + e);
-//        }
+    private void removeSubscription(SocketChannel socket, Request request) {
+        try {
+            Set<String> subscriptions = usersSubscriptions.get(socket);
+            subscriptions.remove(request.getMessage());
+            usersSubscriptions.put(socket, subscriptions);
+        } catch (Exception e){
+            GlobalLogger.getLogger().severe("[MainServer] - " + e);
+        }
     }
 
     private void publishNews(Request request) {
         if (request.getMessage() != null){
             try {
-                GlobalLogger.getLogger().info(request.getMessage());
                 String[] splitMessage = request.getMessage().split(";");
-                GlobalLogger.getLogger().info(Arrays.toString(splitMessage));
-                List<Integer> portsToSend = getUserSocketsForTopic(splitMessage[0]);
-                GlobalLogger.getLogger().info(portsToSend.toString());
+                List<SocketChannel> socketsToSend = getUserSocketsForTopic(splitMessage[0]);
                 String news = splitMessage[1];
-                for (Integer port : portsToSend){
+                for (SocketChannel socket : socketsToSend){
                     Request response = new Request(RequestType.SERVER_NEWS, news);
-                    writeResponse(port, response.toJson());
+                    writeResponse(socket, response.toJson());
                 }
             } catch (Exception e){
                 GlobalLogger.getLogger().severe("[MainServer] - Couldn't parse received message: " + request.getMessage());
