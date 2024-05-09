@@ -6,12 +6,13 @@ import zad1.Util.RequestType;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
-import java.nio.ByteBuffer;
+import java.net.SocketAddress;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 
@@ -89,20 +90,20 @@ public class Client {
             return "ERROR - requestSubscribe - provided topic is empty";
         }
 
-        Request request = new Request(RequestType.SUBSCRIBE, topic);
+        String message = appendPort(topic);
+        Request request = new Request(RequestType.SUBSCRIBE, message);
         Request.sendRequest(request, channel, charset, "[Client]");
-        return "OK - requestSubscribe - subscription added successfully: " + topic;
+        return "OK - requestSubscribe - subscription request has been sent: " + topic;
     }
 
-    private String subscribe(Request request){
+    private void subscribe(Request request){
         if (request.getMessage() == null){
             GlobalLogger.getLogger().severe("[Client] - Subscribe request is empty");
-            return "ERROR - requestSubscribe - provided topic is empty";
+            return;
         }
 
         subscriptions.add(request.getMessage());
         GlobalLogger.getLogger().info("[Client] - Subscription has been added: " + request.getMessage());
-        return "OK - requestSubscribe - subscription added successfully: " + request.getMessage();
     }
 
     public String requestUnsubscribe(String topic){
@@ -111,12 +112,13 @@ public class Client {
             return "ERROR - requestUnsubscribe - provided topic is empty";
         }
 
-        Request request = new Request(RequestType.UNSUBSCRIBE, topic);
+        String message = appendPort(topic);
+        Request request = new Request(RequestType.UNSUBSCRIBE, message);
         Request.sendRequest(request, channel, charset, "[Client]");
         return "OK - requestUnsubscribe - request has been sent successfully: " + topic;
     }
 
-    private String removeSubscription(Request request){
+    private void removeSubscription(Request request){
         if (request.getMessage() == null){
             GlobalLogger.getLogger().severe("[Client] - Remove subscription request is empty");
             return;
@@ -124,6 +126,18 @@ public class Client {
 
         subscriptions.remove(request.getMessage());
         GlobalLogger.getLogger().info("[Client] - Subscription has been removed: " + request.getMessage());
+    }
+
+    private String appendPort(String topic){
+        String channelInfo = channel.toString();
+        String[] splitChannelInfo = channelInfo.split(" ");
+        GlobalLogger.getLogger().info(Arrays.toString(splitChannelInfo));
+        String localInfo = splitChannelInfo[1];
+        String[] splitLocalInfo = localInfo.split(":");
+        GlobalLogger.getLogger().info(Arrays.toString(splitLocalInfo));
+        int port = Integer.parseInt(splitLocalInfo[1]);
+        GlobalLogger.getLogger().info(String.valueOf(port));
+        return port + ";" + topic;
     }
 
 }

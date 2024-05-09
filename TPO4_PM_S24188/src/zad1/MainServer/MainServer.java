@@ -20,7 +20,7 @@ public class MainServer {
     private final int port;
 
     private Set<String> availableTopics;
-    private Map<Integer, Set<String>> usersSubscriptions;
+    private Map<SocketChannel, Set<String>> usersSubscriptions;
     private final Charset charset;
 
     public MainServer(String host, int port) {
@@ -59,6 +59,7 @@ public class MainServer {
 
                     if (key.isAcceptable()){
                         SocketChannel clientChannel = socketChannel.accept();
+                        usersSubscriptions.put(clientChannel, new HashSet<>());
                         GlobalLogger.getLogger().info("[MainServer] - Connection accepted: " + clientChannel.toString());
 
                         clientChannel.configureBlocking(false);
@@ -108,22 +109,25 @@ public class MainServer {
     }
 
     private void removeSubscription(Request request) {
-        try {
-            String[] splitMessage = request.getMessage().split(";");
-            Integer port = Integer.parseInt(splitMessage[0]);
-            Set<String> subscriptions = usersSubscriptions.get(port);
-            subscriptions.remove(splitMessage[1]);
-            usersSubscriptions.put(port, subscriptions);
-        } catch (Exception e){
-            GlobalLogger.getLogger().severe("[MainServer] - " + e);
-        }
+//        try {
+//            String[] splitMessage = request.getMessage().split(";");
+//            Integer port = Integer.parseInt(splitMessage[0]);
+//            Set<String> subscriptions = usersSubscriptions.get(port);
+//            subscriptions.remove(splitMessage[1]);
+//            usersSubscriptions.put(port, subscriptions);
+//        } catch (Exception e){
+//            GlobalLogger.getLogger().severe("[MainServer] - " + e);
+//        }
     }
 
     private void publishNews(Request request) {
         if (request.getMessage() != null){
             try {
+                GlobalLogger.getLogger().info(request.getMessage());
                 String[] splitMessage = request.getMessage().split(";");
-                List<Integer> portsToSend = getUserIdsForTopic(splitMessage[0]);
+                GlobalLogger.getLogger().info(Arrays.toString(splitMessage));
+                List<Integer> portsToSend = getUserSocketsForTopic(splitMessage[0]);
+                GlobalLogger.getLogger().info(portsToSend.toString());
                 String news = splitMessage[1];
                 for (Integer port : portsToSend){
                     Request response = new Request(RequestType.SERVER_NEWS, news);
@@ -142,57 +146,49 @@ public class MainServer {
     }
 
     private void addTopic(Request request) {
-        if (request.getMessage() != null && !availableTopics.contains(request.getMessage())){
+        if (request.getMessage() != null){
            availableTopics.add(request.getMessage());
         }
     }
 
-    private void manageUserSubscription(Request request) {
-        int userId;
-        String topic;
-        if (request.getMessage() != null){
-            try {
-                String[] splitMessage = request.getMessage().split(";");
-                userId = Integer.parseInt(splitMessage[0]);
-                topic = splitMessage[1];
-                if(topic != null){
-                    switch (request.getType()){
-                        case SUBSCRIBE -> addUserSubscription(userId, topic);
-                        case UNSUBSCRIBE -> removeUserSubscription(userId, topic);
-                    }
+    private void manageUserSubscription(SocketChannel socket, Request request) {
+        if (request.getMessage() != null) {
+            String topic = request.getMessage();
+            if (topic != null) {
+                switch (request.getType()) {
+                    case SUBSCRIBE -> addUserSubscription(socket, topic);
+                    case UNSUBSCRIBE -> removeUserSubscription(socket, topic);
                 }
-            } catch (Exception e){
-                GlobalLogger.getLogger().severe("[MainServer] - Couldn't parse received message: " + request.getMessage());
             }
         }
     }
 
-    private void addUserSubscription(Integer userId, String topic){
-        GlobalLogger.getLogger().info("[MainServer] - Adding user's subscription (" + userId + ", " + topic + ')');
-        Set<String> subscriptions = usersSubscriptions.get(userId);
+    private void addUserSubscription(SocketChannel socket, String topic){
+        GlobalLogger.getLogger().info("[MainServer] - Adding user's subscription (" + socket + ", " + topic + ')');
+        Set<String> subscriptions = usersSubscriptions.get(socket);
         if (subscriptions == null){
             subscriptions = new HashSet<>();
         }
         subscriptions.add(topic);
-        usersSubscriptions.put(userId, subscriptions);
+        usersSubscriptions.put(socket, subscriptions);
     }
 
-    private void removeUserSubscription(Integer userId, String topic){
-        GlobalLogger.getLogger().info("[MainServer] - Removing user's subscription (" + userId + ", " + topic + ')');
-        Set<String> subscriptions = usersSubscriptions.get(userId);
+    private void removeUserSubscription(SocketChannel socket, String topic){
+        GlobalLogger.getLogger().info("[MainServer] - Removing user's subscription (" + socket + ", " + topic + ')');
+        Set<String> subscriptions = usersSubscriptions.get(socket);
         if (subscriptions != null){
             subscriptions.remove(topic);
         }
     }
 
-    private List<Integer> getUserIdsForTopic(String topic) {
-        List<Integer> userIds = new ArrayList<>();
-        for (Map.Entry<Integer, Set<String>> entry : usersSubscriptions.entrySet()) {
+    private List<SocketChannel> getUserSocketsForTopic(String topic) {
+        List<SocketChannel> userSockets = new ArrayList<>();
+        for (Map.Entry<SocketChannel, Set<String>> entry : usersSubscriptions.entrySet()) {
             if (entry.getValue().contains(topic)) {
-                userIds.add(entry.getKey());
+                userSockets.add(entry.getKey());
             }
         }
-        return userIds;
+        return userSockets;
     }
 
 }

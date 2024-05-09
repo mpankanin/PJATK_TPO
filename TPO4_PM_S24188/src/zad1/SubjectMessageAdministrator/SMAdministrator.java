@@ -57,7 +57,7 @@ public class SMAdministrator {
             return "OK - requestAddTopic - topic added successfully: " + topic;
         }else {
             GlobalLogger.getLogger().warning("[Admin] - provided topic already exists - operation add topic ignored");
-            return "ERROR - requestAddTopic - provided topic doesn't exist - operation ignored";
+            return "ERROR - requestAddTopic - provided topic already exists - operation ignored";
         }
     }
 
@@ -88,7 +88,8 @@ public class SMAdministrator {
 
         if(topics.contains(topic)){
             GlobalLogger.getLogger().info("[Admin] - publishing news: " + topic + ", " + news);
-            Request request = new Request(RequestType.PUBLISH_NEWS, news);
+            String topicNews = topic + ";" + news;
+            Request request = new Request(RequestType.PUBLISH_NEWS, topicNews);
             Request.sendRequest(request, channel, charset, "[Admin]");
             GlobalLogger.getLogger().info("[Admin] - news has been published: " + topic + ", " + news);
             return "OK - publishNews - " + topic + ", " + news;

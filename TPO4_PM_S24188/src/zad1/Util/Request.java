@@ -3,11 +3,8 @@ package zad1.Util;
 import org.json.JSONObject;
 
 import java.io.IOException;
-import java.io.ObjectInputStream;
 import java.io.Serializable;
 import java.nio.ByteBuffer;
-import java.nio.CharBuffer;
-import java.nio.channels.Channels;
 import java.nio.channels.SocketChannel;
 import java.nio.charset.Charset;
 import java.util.Arrays;
@@ -70,7 +67,6 @@ public class Request implements Serializable {
             }
 
             json = new JSONObject(jsonStringBuilder.toString());
-
             request = new Request(
                     getRequestType(json),
                     getRequestMessage(json)
@@ -85,7 +81,7 @@ public class Request implements Serializable {
 
     private static RequestType getRequestType(JSONObject json){
         Optional<RequestType> requestType = Arrays.stream(RequestType.values())
-                .filter(rt -> rt.equals(json.get("type")))
+                .filter(rt -> rt.toString().equals(json.getString("type")))
                 .findFirst();
 
         if (requestType.isEmpty()) {
