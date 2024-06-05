@@ -1,7 +1,6 @@
-package org.example.demo;
+package org.example.tpo5_pm_s24188;
 
 import java.io.*;
-
 import jakarta.servlet.http.*;
 import jakarta.servlet.annotation.*;
 
