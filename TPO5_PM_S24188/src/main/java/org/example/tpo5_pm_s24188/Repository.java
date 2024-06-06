@@ -1,37 +1,26 @@
 package org.example.tpo5_pm_s24188;
 
-import jakarta.servlet.RequestDispatcher;
-import jakarta.servlet.ServletException;
-import jakarta.servlet.annotation.WebServlet;
-import jakarta.servlet.http.HttpServlet;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
-
-import java.io.BufferedReader;
-import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-@WebServlet(name = "persistenceServlet", value = "/persistence")
-public class PersistenceServlet extends HttpServlet {
+public class Repository {
+
     private final String DB_URL = "jdbc:h2:~/VehicleDB";
     private final String USER = "sa";
     private final String PASS = "";
 
-    private final String select = "SELECT * FROM VEHICLES";
-    private final String where = " WHERE";
-    private final String and = " AND";
 
+    public Repository(){
+        init();
+    }
 
-    @Override
-    public void init() throws ServletException {
+    private void init(){
         try {
             Class.forName("org.h2.Driver");
             Connection conn = DriverManager.getConnection(DB_URL, USER, PASS);
@@ -65,64 +54,45 @@ public class PersistenceServlet extends HttpServlet {
 
             stmt.close();
             conn.close();
-        } catch (Exception e) {
-            throw new ServletException(e);
+        } catch (SQLException | ClassNotFoundException e) {
+            throw new RuntimeException(e);
         }
     }
 
-    @Override
-    protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException {
-        Map<String, String> parameters = new HashMap<>();
-        parameters.put("TYPE", req.getParameter("type"));
-        parameters.put("BRAND", req.getParameter("brand"));
-        parameters.put("MODEL", req.getParameter("model"));
-        parameters.put("PRODUCTION_YEAR", req.getParameter("productionYear"));
-        parameters.put("CONSUMPTION", req.getParameter("fuelConsumption"));
-
-        String sql = generateSQL(parameters);
-
+    public List<String> getVehicles(Map<String, String> parameters) {
         try {
-            Class.forName("org.h2.Driver");
             Connection conn = DriverManager.getConnection(DB_URL, USER, PASS);
             Statement stmt = conn.createStatement();
+            String sql = generateSQL(parameters);
 
             ResultSet rs = stmt.executeQuery(sql);
-
             List<String> resultList = new ArrayList<>();
             while (rs.next()) {
                 resultList.add(rs.getString("TYPE") + ";"
-                + rs.getString("BRAND") + ";"
-                + rs.getString("MODEL") + ";"
-                + rs.getInt("PRODUCTION_YEAR") + ";"
-                + rs.getDouble("CONSUMPTION"));
+                        + rs.getString("BRAND") + ";"
+                        + rs.getString("MODEL") + ";"
+                        + rs.getInt("PRODUCTION_YEAR") + ";"
+                        + rs.getDouble("CONSUMPTION"));
             }
-
-            req.setAttribute("resultList", resultList);
-
-            RequestDispatcher dispatcher = req.getRequestDispatcher("/hello-servlet");
-            dispatcher.forward(req, resp);
-
-            rs.close();
-            stmt.close();
-            conn.close();
-        } catch (Exception e) {
-            throw new ServletException(e);
+            return resultList;
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
         }
-
     }
 
     private String generateSQL(Map<String, String> parameters) {
+        String select = "SELECT * FROM VEHICLES";
         StringBuilder sql = new StringBuilder(select);
         boolean firstCondition = true;
 
         for(Map.Entry<String, String> entry : parameters.entrySet()){
             if (!entry.getValue().isEmpty()){
                 if (firstCondition) {
-                    sql.append(where);
+                    sql.append(" WHERE");
                     sql.append(String.format(" (%s = '%s')", entry.getKey(), entry.getValue()));
                     firstCondition = false;
                 }
-                sql.append(and);
+                sql.append(" AND");
                 sql.append(String.format(" (%s = '%s')", entry.getKey(), entry.getValue()));
             }
         }
